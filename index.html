@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Global AI Adoption — Interactive 3D Globe</title>
+    <meta name="description" content="3D interactive globe of country-level AI adoption rates, updated April 2026." />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://raw.githubusercontent.com" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <h1>Global AI Adoption</h1>
+        <span class="as-of" id="asOf">as of —</span>
+      </div>
+      <nav class="metric-tabs" id="metricTabs" role="tablist" aria-label="Metric">
+        <button data-metric="score" class="active" role="tab">Composite</button>
+        <button data-metric="enterprise" role="tab">Enterprise</button>
+        <button data-metric="consumer" role="tab">Consumer GenAI</button>
+        <button data-metric="government" role="tab">Government readiness</button>
+        <button data-metric="talent" role="tab">Talent &amp; skills</button>
+        <button data-metric="investment" role="tab">Investment</button>
+      </nav>
+      <div class="topbar-actions">
+        <input
+          id="search"
+          type="search"
+          placeholder="Search country…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="spinToggle" class="ghost" title="Toggle auto-rotate">⟳ Spin</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="globe-wrap">
+        <div id="globe" aria-label="3D globe of AI adoption"></div>
+        <div id="tooltip" class="tooltip" hidden></div>
+
+        <div class="legend" id="legend">
+          <div class="legend-title" id="legendTitle">Composite AI Adoption Index</div>
+          <div class="legend-bar" aria-hidden="true"></div>
+          <div class="legend-scale">
+            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+          </div>
+          <p class="legend-note">
+            Estimated index — see methodology in panel.
+          </p>
+        </div>
+
+        <div class="hint" id="hint">
+          Drag to rotate · Scroll to zoom · Click a country for details
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card" id="detailCard">
+          <header class="card-head">
+            <h2 id="detailName">Select a country</h2>
+            <span class="rank" id="detailRank"></span>
+          </header>
+          <p class="muted" id="detailNote">
+            Click any country on the globe — or pick from the leaderboard below — to see its
+            AI adoption breakdown.
+          </p>
+          <dl class="stats" id="detailStats" hidden>
+            <div><dt>Composite</dt><dd><span id="sComposite">—</span><i>/100</i></dd></div>
+            <div><dt>YoY change</dt><dd><span id="sYoy">—</span></dd></div>
+            <div><dt>Enterprise adoption</dt><dd><span id="sEnt">—</span></dd></div>
+            <div><dt>Consumer GenAI use</dt><dd><span id="sCons">—</span></dd></div>
+            <div><dt>Government readiness</dt><dd><span id="sGov">—</span></dd></div>
+            <div><dt>Talent &amp; skills</dt><dd><span id="sTal">—</span></dd></div>
+            <div><dt>Investment &amp; infra</dt><dd><span id="sInv">—</span></dd></div>
+          </dl>
+          <div class="bars" id="detailBars" hidden></div>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <h2>Leaderboard</h2>
+            <span class="muted small" id="leaderMetric">Composite</span>
+          </header>
+          <ol class="leaderboard" id="leaderboard"></ol>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <h2>About this index</h2>
+          </header>
+          <p class="small">
+            A composite 0–100 score blending five dimensions: enterprise adoption (30%),
+            consumer GenAI usage (20%), government readiness (20%), talent &amp; skills (15%) and
+            investment &amp; infrastructure (15%).
+          </p>
+          <details>
+            <summary>Sources</summary>
+            <ul class="small sources" id="sourceList"></ul>
+          </details>
+          <details>
+            <summary>Methodology &amp; caveats</summary>
+            <p class="small" id="methodology"></p>
+            <p class="small muted">
+              Estimates are projected to 28 Apr 2026 from the most recent published values
+              and should be treated as directional.
+            </p>
+          </details>
+        </section>
+      </aside>
+    </main>
+
+    <!-- THREE + globe.gl bundle (UMD) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.33.0/dist/globe.gl.min.js"></script>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
