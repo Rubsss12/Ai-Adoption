@@ -68,8 +68,11 @@ const PALETTE = [
   [80,  [179, 136, 255]],
   [100, [255, 95, 180]],
 ];
-const NO_DATA_COLOR = "rgba(120, 130, 170, 0.10)";
-const NO_DATA_STROKE = "rgba(140, 170, 255, 0.18)";
+const NO_DATA_COLOR = "rgba(95, 110, 150, 0.45)";
+const BORDER_COLOR = "rgba(255, 255, 255, 0.55)";
+const SELECTED_BORDER = "#ffffff";
+const HOVER_BORDER = "#ffd166";
+const SIDE_COLOR = "rgba(70, 95, 180, 0.55)";
 
 const lerp = (a, b, t) => a + (b - a) * t;
 function colorForScore(score) {
@@ -111,6 +114,7 @@ const state = {
   byIso: new Map(),      // iso3 -> country record
   features: [],          // GeoJSON features
   selectedIso: null,
+  hoveredIso: null,
   spin: true,
   globe: null,
 };
@@ -171,20 +175,25 @@ function buildGlobe() {
     .atmosphereColor("#7aa2ff")
     .atmosphereAltitude(0.18)
     .polygonsData(state.features)
-    .polygonAltitude((d) => 0.012 + (getMetric(d) ?? 0) / 100 * 0.16)
+    .polygonAltitude((d) => polygonAltitudeFor(d))
     .polygonCapColor((d) => fillFor(d))
-    .polygonSideColor(() => "rgba(40, 60, 140, 0.35)")
-    .polygonStrokeColor(() => NO_DATA_STROKE)
+    .polygonSideColor(() => SIDE_COLOR)
+    .polygonStrokeColor((d) => strokeFor(d))
+    .polygonsTransitionDuration(300)
     .polygonLabel(() => "")
     .onPolygonHover((hover) => {
       el.style.cursor = hover ? "pointer" : "grab";
+      const newIso = hover ? getFeatureIso3(hover) : null;
+      if (newIso !== state.hoveredIso) {
+        state.hoveredIso = newIso;
+        refreshGlobeColors();
+      }
       if (!hover) {
         tooltip.hidden = true;
         return;
       }
       const name = getFeatureName(hover);
-      const iso = getFeatureIso3(hover);
-      const c = iso ? state.byIso.get(iso) : null;
+      const c = newIso ? state.byIso.get(newIso) : null;
       const v = c ? c[state.metric] : null;
       tooltip.innerHTML = c
         ? `<strong>${name}</strong><span class="tval">${v}</span>`
@@ -193,7 +202,7 @@ function buildGlobe() {
     })
     .onPolygonClick((feat) => {
       const iso = getFeatureIso3(feat);
-      if (iso) selectCountry(iso, { fly: true });
+      if (iso) selectCountry(iso, { fly: true, openModal: true });
     });
 
   // Sizing + responsive
@@ -230,27 +239,35 @@ function getMetric(feature) {
   return c ? c[state.metric] : null;
 }
 
+function polygonAltitudeFor(feature) {
+  const iso = getFeatureIso3(feature);
+  const m = getMetric(feature);
+  let alt = 0.02 + (m ?? 0) / 100 * 0.18;
+  if (state.hoveredIso === iso) alt += 0.04;
+  if (state.selectedIso === iso) alt += 0.06;
+  return alt;
+}
+
 function fillFor(feature) {
   const iso = getFeatureIso3(feature);
   const c = iso ? state.byIso.get(iso) : null;
   if (!c) return NO_DATA_COLOR;
-  const base = colorForScore(c[state.metric]);
-  if (state.selectedIso && state.selectedIso === iso) {
-    return base;
-  }
-  return base;
+  return colorForScore(c[state.metric]);
+}
+
+function strokeFor(feature) {
+  const iso = getFeatureIso3(feature);
+  if (state.selectedIso && state.selectedIso === iso) return SELECTED_BORDER;
+  if (state.hoveredIso && state.hoveredIso === iso) return HOVER_BORDER;
+  return BORDER_COLOR;
 }
 
 function refreshGlobeColors() {
   if (!state.globe) return;
   state.globe
     .polygonCapColor((d) => fillFor(d))
-    .polygonAltitude((d) => 0.012 + (getMetric(d) ?? 0) / 100 * 0.16)
-    .polygonStrokeColor((d) => {
-      const iso = getFeatureIso3(d);
-      if (state.selectedIso && state.selectedIso === iso) return "#ffffff";
-      return NO_DATA_STROKE;
-    });
+    .polygonAltitude((d) => polygonAltitudeFor(d))
+    .polygonStrokeColor((d) => strokeFor(d));
 }
 
 // ------- UI bindings -------
@@ -274,7 +291,7 @@ function bindUi() {
         x.name.toLowerCase().startsWith(q) ||
         x.iso_a3.toLowerCase() === q
     );
-    if (c) selectCountry(c.iso_a3, { fly: true });
+    if (c) selectCountry(c.iso_a3, { fly: true, openModal: true });
   });
 
   // Spin toggle
@@ -286,6 +303,35 @@ function bindUi() {
     spin.textContent = state.spin ? "⟳ Spin" : "■ Stopped";
   });
   spin.classList.add("active");
+
+  // Modal close handlers
+  const modal = document.getElementById("countryModal");
+  const closeModal = () => {
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    state.selectedIso = null;
+    refreshGlobeColors();
+    document.querySelectorAll("#leaderboard li").forEach((li) =>
+      li.classList.remove("selected")
+    );
+  };
+  document.getElementById("modalClose").addEventListener("click", closeModal);
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.hidden) closeModal();
+  });
+
+  // "Fly to" inside modal — re-fly to currently selected country
+  document.getElementById("modalFly").addEventListener("click", () => {
+    if (!state.selectedIso) return;
+    const feat = state.features.find((f) => getFeatureIso3(f) === state.selectedIso);
+    if (!feat) return;
+    const [lng, lat] = featureCentroid(feat);
+    state.globe.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+  });
 }
 
 function setMetric(m) {
@@ -298,16 +344,18 @@ function setMetric(m) {
   document.getElementById("leaderMetric").textContent = METRIC_LABELS[m];
   refreshGlobeColors();
   renderLeaderboard();
-  if (state.selectedIso) renderDetail(state.byIso.get(state.selectedIso));
+  if (state.selectedIso) {
+    const modal = document.getElementById("countryModal");
+    if (!modal.hidden) renderModalBars(state.byIso.get(state.selectedIso));
+  }
 }
 
-// ------- Detail panel -------
-function selectCountry(iso, { fly = false } = {}) {
+// ------- Selection + modal -------
+function selectCountry(iso, { fly = false, openModal = false } = {}) {
   const c = state.byIso.get(iso);
   if (!c) return;
   state.selectedIso = iso;
   refreshGlobeColors();
-  renderDetail(c);
   highlightLeaderboard(iso);
 
   if (fly) {
@@ -317,42 +365,47 @@ function selectCountry(iso, { fly = false } = {}) {
       state.globe.pointOfView({ lat, lng, altitude: 1.6 }, 900);
     }
   }
+  if (openModal) showCountryModal(c);
 }
 
-function renderDetail(c) {
-  const card = document.getElementById("detailCard");
-  document.getElementById("detailName").textContent = c.name;
-  document.getElementById("detailRank").textContent = `#${c.rank} · ${c.iso_a3}`;
-  const noteEl = document.getElementById("detailNote");
-  noteEl.textContent = c.note || "Composite AI adoption snapshot.";
+function showCountryModal(c) {
+  const modal = document.getElementById("countryModal");
+  document.getElementById("modalName").textContent = c.name;
+  document.getElementById("modalIso").textContent = c.iso_a3;
+  document.getElementById("modalRank").textContent = `Rank #${c.rank}`;
 
-  const stats = document.getElementById("detailStats");
-  stats.hidden = false;
-  document.getElementById("sComposite").textContent = c.score;
-  const yoyEl = document.getElementById("sYoy");
+  const yoyEl = document.getElementById("modalYoy");
   const sign = c.yoy > 0 ? "+" : "";
   yoyEl.textContent = `${sign}${c.yoy} pts YoY`;
-  yoyEl.style.color = c.yoy >= 0 ? "var(--good)" : "var(--bad)";
-  document.getElementById("sEnt").textContent = c.enterprise;
-  document.getElementById("sCons").textContent = c.consumer;
-  document.getElementById("sGov").textContent = c.government;
-  document.getElementById("sTal").textContent = c.talent;
-  document.getElementById("sInv").textContent = c.investment;
+  yoyEl.classList.toggle("down", (c.yoy ?? 0) < 0);
 
-  // Bars (sub-metric breakdown)
-  const bars = document.getElementById("detailBars");
-  bars.hidden = false;
+  document.getElementById("modalScore").textContent = c.score;
+  document.getElementById("scoreDial").style.setProperty("--pct", c.score);
+
+  document.getElementById("modalNote").textContent =
+    c.note || `${c.name} scores ${c.score}/100 on the composite AI Adoption Index.`;
+
+  document.getElementById("modalMethod").textContent = state.data.meta.methodology;
+
+  renderModalBars(c);
+
+  modal.hidden = false;
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function renderModalBars(c) {
+  const bars = document.getElementById("modalBars");
   bars.innerHTML = "";
   const subs = [
-    ["Enterprise", c.enterprise],
-    ["Consumer GenAI", c.consumer],
-    ["Government", c.government],
-    ["Talent", c.talent],
-    ["Investment", c.investment],
+    ["enterprise", "Enterprise adoption", c.enterprise],
+    ["consumer",   "Consumer GenAI use",  c.consumer],
+    ["government", "Government readiness", c.government],
+    ["talent",     "Talent & skills",     c.talent],
+    ["investment", "Investment & infra",  c.investment],
   ];
-  for (const [label, val] of subs) {
+  for (const [key, label, val] of subs) {
     const row = document.createElement("div");
-    row.className = "bar-row";
+    row.className = "bar-row" + (state.metric === key ? " active" : "");
     row.innerHTML = `
       <span>${label}</span>
       <span class="bar-track"><span class="bar-fill" style="right:${100 - val}%"></span></span>
@@ -360,7 +413,6 @@ function renderDetail(c) {
     `;
     bars.appendChild(row);
   }
-  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 // ------- Leaderboard -------
@@ -382,7 +434,7 @@ function renderLeaderboard() {
       <span class="val">${c[state.metric]}</span>
       <span class="yoy ${yoyClass}">${yoyTxt}</span>
     `;
-    li.addEventListener("click", () => selectCountry(c.iso_a3, { fly: true }));
+    li.addEventListener("click", () => selectCountry(c.iso_a3, { fly: true, openModal: true }));
     list.appendChild(li);
   });
 }

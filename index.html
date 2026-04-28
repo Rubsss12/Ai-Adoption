@@ -59,32 +59,14 @@
       </section>
 
       <aside class="side">
-        <section class="card" id="detailCard">
-          <header class="card-head">
-            <h2 id="detailName">Select a country</h2>
-            <span class="rank" id="detailRank"></span>
-          </header>
-          <p class="muted" id="detailNote">
-            Click any country on the globe — or pick from the leaderboard below — to see its
-            AI adoption breakdown.
-          </p>
-          <dl class="stats" id="detailStats" hidden>
-            <div><dt>Composite</dt><dd><span id="sComposite">—</span><i>/100</i></dd></div>
-            <div><dt>YoY change</dt><dd><span id="sYoy">—</span></dd></div>
-            <div><dt>Enterprise adoption</dt><dd><span id="sEnt">—</span></dd></div>
-            <div><dt>Consumer GenAI use</dt><dd><span id="sCons">—</span></dd></div>
-            <div><dt>Government readiness</dt><dd><span id="sGov">—</span></dd></div>
-            <div><dt>Talent &amp; skills</dt><dd><span id="sTal">—</span></dd></div>
-            <div><dt>Investment &amp; infra</dt><dd><span id="sInv">—</span></dd></div>
-          </dl>
-          <div class="bars" id="detailBars" hidden></div>
-        </section>
-
         <section class="card">
           <header class="card-head">
             <h2>Leaderboard</h2>
             <span class="muted small" id="leaderMetric">Composite</span>
           </header>
+          <p class="muted small" style="margin:0 0 8px 0">
+            Click a country on the globe or in the list to open its full breakdown.
+          </p>
           <ol class="leaderboard" id="leaderboard"></ol>
         </section>
 
@@ -112,6 +94,45 @@
         </section>
       </aside>
     </main>
+
+    <!-- Full-page country detail overlay -->
+    <div id="countryModal" class="modal-backdrop" hidden aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalName">
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+
+        <div class="modal-header">
+          <div class="modal-title-block">
+            <div class="modal-eyebrow" id="modalEyebrow">AI Adoption Profile</div>
+            <h2 id="modalName">—</h2>
+            <div class="modal-chips">
+              <span id="modalRank" class="chip rank">—</span>
+              <span id="modalIso" class="chip">—</span>
+              <span id="modalYoy" class="chip yoy">—</span>
+            </div>
+          </div>
+          <div class="modal-score">
+            <div class="score-dial" id="scoreDial" style="--pct:0">
+              <span class="score-num" id="modalScore">—</span>
+              <span class="score-suf">/100</span>
+            </div>
+            <div class="score-label">Composite Index</div>
+          </div>
+        </div>
+
+        <p class="modal-note" id="modalNote"></p>
+
+        <h3 class="modal-section">Sub-index breakdown</h3>
+        <div class="modal-bars" id="modalBars"></div>
+
+        <h3 class="modal-section">Methodology</h3>
+        <p class="modal-method small muted" id="modalMethod">—</p>
+
+        <footer class="modal-actions">
+          <button class="ghost" id="modalFly">Fly to on globe</button>
+          <button class="ghost primary" id="modalCloseBtn">Close</button>
+        </footer>
+      </div>
+    </div>
 
     <!-- THREE + globe.gl bundle (UMD) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
