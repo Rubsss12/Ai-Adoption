@@ -533,6 +533,253 @@ details[open] > summary::before { content: "▾ "; }
   background: linear-gradient(180deg, rgba(122,162,255,0.18), rgba(192,132,252,0.14));
 }
 
+/* ---------- Stat tiles inside modal ---------- */
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 14px 0 4px 0;
+}
+.stat-tile {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.stat-tile .tile-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-tile .tile-num i {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 3px;
+}
+.stat-tile .tile-lab {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Sparkline ---------- */
+.sparkline-wrap {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px 8px 12px;
+}
+.sparkline {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+.sparkline .grid-line { stroke: rgba(255, 255, 255, 0.05); stroke-width: 1; }
+.sparkline .area { fill: url(#sparkGradient); opacity: 0.55; }
+.sparkline .line { fill: none; stroke: #c084fc; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.sparkline .dot  { fill: #ff5fb4; }
+.sparkline .dot.first { fill: #6aa3ff; }
+.sparkline .label { fill: var(--text); font-size: 11px; font-variant-numeric: tabular-nums; }
+.sparkline .label.muted { fill: var(--muted); }
+
+.spark-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Pills + initiatives ---------- */
+.pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.pill {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(122, 162, 255, 0.10);
+  border: 1px solid rgba(122, 162, 255, 0.30);
+  color: var(--text);
+  white-space: nowrap;
+}
+.pill.org {
+  background: rgba(192, 132, 252, 0.10);
+  border-color: rgba(192, 132, 252, 0.30);
+}
+.pill.reg {
+  background: rgba(74, 222, 128, 0.10);
+  border-color: rgba(74, 222, 128, 0.35);
+  color: #b1f5c8;
+  white-space: normal;
+}
+
+.initiative-list {
+  list-style: none;
+  margin: 6px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.initiative-list li {
+  position: relative;
+  padding: 8px 10px 8px 28px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--accent-2);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+.initiative-list li::before {
+  content: "";
+  position: absolute;
+  left: 12px; top: 13px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.8);
+}
+.initiative-list:empty::after,
+#modalOrgs:empty::after,
+#modalSectors:empty::after {
+  content: "—";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* ---------- Side panel: stat-card + movers ---------- */
+.stat-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.big-stat-num {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #a8c5ff, #d8b4fe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.big-stat-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+.stat-grid-mini {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  text-align: right;
+}
+.stat-grid-mini > div { min-width: 0; }
+.mini-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-lab {
+  font-size: 9.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.movers {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.movers li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  transition: background 120ms ease;
+}
+.movers li:hover { background: rgba(122,162,255,0.08); }
+.movers .mv-name { color: var(--text); }
+.movers .mv-yoy {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(74,222,128,0.10);
+  color: var(--good);
+  border: 1px solid rgba(74,222,128,0.3);
+}
+.movers .mv-yoy.down {
+  color: var(--bad);
+  background: rgba(248,113,113,0.10);
+  border-color: rgba(248,113,113,0.3);
+}
+.movers .mv-rank {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Legend quartiles */
+.legend-quartiles {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Keyboard hint */
+kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--text);
+  margin: 0 1px;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 980px) {
   .layout { grid-template-columns: 1fr; grid-template-rows: 1fr auto; inset: 110px 0 0 0; }
@@ -547,4 +794,8 @@ details[open] > summary::before { content: "▾ "; }
   .modal-header { grid-template-columns: 1fr; }
   .modal-score { justify-self: start; }
   .modal-bars .bar-row { grid-template-columns: 110px 1fr 40px; }
+  .stat-tiles { grid-template-columns: repeat(2, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; gap: 8px; }
+  .stat-card { grid-template-columns: 1fr; text-align: left; }
+  .stat-grid-mini { text-align: left; }
 }

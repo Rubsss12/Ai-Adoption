@@ -48,8 +48,11 @@
           <div class="legend-scale">
             <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
           </div>
+          <div class="legend-quartiles">
+            <span>Emerging</span><span>Developing</span><span>Advanced</span><span>Frontier</span>
+          </div>
           <p class="legend-note">
-            Estimated index — see methodology in panel.
+            Estimated index — see methodology.
           </p>
         </div>
 
@@ -59,13 +62,33 @@
       </section>
 
       <aside class="side">
+        <section class="card stat-card">
+          <div class="big-stat">
+            <div class="big-stat-num" id="globalAvg">—</div>
+            <div class="big-stat-label">Global average index</div>
+          </div>
+          <div class="stat-grid-mini">
+            <div><div class="mini-num" id="globalCountries">—</div><div class="mini-lab">countries</div></div>
+            <div><div class="mini-num" id="globalTop">—</div><div class="mini-lab">leader</div></div>
+            <div><div class="mini-num" id="globalYoy">—</div><div class="mini-lab">avg YoY</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <header class="card-head">
+            <h2>Top movers · YoY</h2>
+            <span class="muted small">2025 → 2026</span>
+          </header>
+          <ol class="movers" id="topMovers"></ol>
+        </section>
+
         <section class="card">
           <header class="card-head">
             <h2>Leaderboard</h2>
             <span class="muted small" id="leaderMetric">Composite</span>
           </header>
           <p class="muted small" style="margin:0 0 8px 0">
-            Click a country on the globe or in the list to open its full breakdown.
+            Click a country to open its full profile.
           </p>
           <ol class="leaderboard" id="leaderboard"></ol>
         </section>
@@ -121,8 +144,33 @@
 
         <p class="modal-note" id="modalNote"></p>
 
+        <div class="stat-tiles" id="statTiles"></div>
+
+        <h3 class="modal-section">AI adoption trajectory · 2020 – 2026</h3>
+        <div class="sparkline-wrap">
+          <svg id="sparkline" class="sparkline" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="spark-axis" id="sparkAxis"></div>
+        </div>
+
         <h3 class="modal-section">Sub-index breakdown</h3>
         <div class="modal-bars" id="modalBars"></div>
+
+        <div class="grid-2">
+          <div>
+            <h3 class="modal-section">Top sectors deploying AI</h3>
+            <div class="pill-row" id="modalSectors"></div>
+          </div>
+          <div>
+            <h3 class="modal-section">Regulatory status</h3>
+            <div class="pill-row"><span class="pill reg" id="modalRegulation">—</span></div>
+          </div>
+        </div>
+
+        <h3 class="modal-section">Flagship initiatives</h3>
+        <ul class="initiative-list" id="modalInitiatives"></ul>
+
+        <h3 class="modal-section">Notable labs &amp; companies</h3>
+        <div class="pill-row" id="modalOrgs"></div>
 
         <h3 class="modal-section">Methodology</h3>
         <p class="modal-method small muted" id="modalMethod">—</p>

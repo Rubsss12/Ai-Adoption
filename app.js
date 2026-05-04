@@ -160,7 +160,27 @@ async function init() {
   buildGlobe();
   bindUi();
   renderLeaderboard();
+  renderTopMovers();
+  renderSummaryStats();
   refreshGlobeColors();
+}
+
+// ------- Number formatting -------
+function fmtNum(n) {
+  if (n == null) return "—";
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k";
+  return Math.round(n).toString();
+}
+function fmtMoney(bn) {
+  if (bn == null) return "—";
+  if (bn >= 1000) return "$" + (bn / 1000).toFixed(1) + "T";
+  return "$" + Math.round(bn) + "B";
+}
+function fmtPop(m) {
+  if (m == null) return "—";
+  if (m >= 1000) return (m / 1000).toFixed(2) + "B";
+  if (m < 10) return m.toFixed(1) + "M";
+  return Math.round(m) + "M";
 }
 
 // ------- Globe -------
@@ -321,7 +341,31 @@ function bindUi() {
     if (e.target === modal) closeModal();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modal.hidden) closeModal();
+    // Esc: close modal
+    if (e.key === "Escape" && !modal.hidden) {
+      closeModal();
+      return;
+    }
+    // Ignore shortcuts while typing in search
+    const tag = (e.target?.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea") return;
+
+    // 1-6: switch metric tabs
+    const tabKeys = { 1: "score", 2: "enterprise", 3: "consumer", 4: "government", 5: "talent", 6: "investment" };
+    if (tabKeys[e.key]) {
+      setMetric(tabKeys[e.key]);
+      return;
+    }
+    // /: focus search
+    if (e.key === "/") {
+      e.preventDefault();
+      document.getElementById("search").focus();
+      return;
+    }
+    // s: toggle spin
+    if (e.key === "s" || e.key === "S") {
+      document.getElementById("spinToggle").click();
+    }
   });
 
   // "Fly to" inside modal — re-fly to currently selected country
@@ -387,10 +431,162 @@ function showCountryModal(c) {
 
   document.getElementById("modalMethod").textContent = state.data.meta.methodology;
 
+  renderStatTiles(c);
+  renderSparkline(c);
   renderModalBars(c);
+  renderSectors(c);
+  renderInitiatives(c);
+  renderOrgs(c);
+  document.getElementById("modalRegulation").textContent = c.regulation || "—";
 
   modal.hidden = false;
   modal.setAttribute("aria-hidden", "false");
+  // Animate score number
+  animateNumber(document.getElementById("modalScore"), 0, c.score, 700);
+}
+
+function animateNumber(el, from, to, ms) {
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / ms);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(from + (to - from) * eased);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderStatTiles(c) {
+  const startupsPer = c.ai_startups && c.population_m
+    ? (c.ai_startups / c.population_m).toFixed(1)
+    : null;
+  const tiles = [
+    { lab: "Population",   num: fmtPop(c.population_m) },
+    { lab: "GDP (nominal)", num: fmtMoney(c.gdp_bn) },
+    { lab: "AI companies",  num: fmtNum(c.ai_startups), suf: c.ai_startups ? "est." : "" },
+    { lab: "AI cos / 1M people", num: startupsPer ?? "—" },
+  ];
+  const root = document.getElementById("statTiles");
+  root.innerHTML = "";
+  for (const t of tiles) {
+    const div = document.createElement("div");
+    div.className = "stat-tile";
+    div.innerHTML = `<div class="tile-num">${t.num}${t.suf ? `<i>${t.suf}</i>` : ""}</div><div class="tile-lab">${t.lab}</div>`;
+    root.appendChild(div);
+  }
+}
+
+function renderSparkline(c) {
+  const svg = document.getElementById("sparkline");
+  const W = 600, H = 120, pad = { l: 28, r: 36, t: 14, b: 18 };
+  const trend = c.trend || [];
+  const years = [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const vmin = 0, vmax = 100;
+  const x = (i) => pad.l + (i / (trend.length - 1)) * (W - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - (v - vmin) / (vmax - vmin)) * (H - pad.t - pad.b);
+
+  const pts = trend.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  const linePath = "M" + pts.join(" L ");
+  const areaPath = `M ${x(0)},${y(0)} L ` + pts.join(" L ") + ` L ${x(trend.length-1)},${y(0)} Z`;
+
+  const gridLines = [25, 50, 75]
+    .map((g) => `<line class="grid-line" x1="${pad.l}" x2="${W - pad.r}" y1="${y(g).toFixed(1)}" y2="${y(g).toFixed(1)}"/>`)
+    .join("");
+
+  const dots = trend.map((v, i) => {
+    const cls = i === 0 ? "dot first" : (i === trend.length - 1 ? "dot" : "dot mid");
+    const r = i === 0 || i === trend.length - 1 ? 4.5 : 2.8;
+    return `<circle class="${cls}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${r}"/>`;
+  }).join("");
+
+  const startLabel = `<text class="label muted" x="${(x(0) - 6).toFixed(1)}" y="${(y(trend[0]) + 4).toFixed(1)}" text-anchor="end">${trend[0]}</text>`;
+  const endLabel = `<text class="label" x="${(x(trend.length-1) + 8).toFixed(1)}" y="${(y(trend.at(-1)) + 4).toFixed(1)}">${trend.at(-1)}</text>`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#c084fc" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#c084fc" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    <path class="area" d="${areaPath}"/>
+    <path class="line" d="${linePath}"/>
+    ${dots}
+    ${startLabel}${endLabel}
+  `;
+
+  const axis = document.getElementById("sparkAxis");
+  axis.innerHTML = years.map((y) => `<span>${y}</span>`).join("");
+}
+
+function renderSectors(c) {
+  const root = document.getElementById("modalSectors");
+  root.innerHTML = "";
+  for (const s of c.top_sectors || []) {
+    const span = document.createElement("span");
+    span.className = "pill";
+    span.textContent = s;
+    root.appendChild(span);
+  }
+}
+
+function renderInitiatives(c) {
+  const root = document.getElementById("modalInitiatives");
+  root.innerHTML = "";
+  for (const t of c.flagship_initiatives || []) {
+    const li = document.createElement("li");
+    li.textContent = t;
+    root.appendChild(li);
+  }
+}
+
+function renderOrgs(c) {
+  const root = document.getElementById("modalOrgs");
+  root.innerHTML = "";
+  for (const o of c.notable_orgs || []) {
+    const span = document.createElement("span");
+    span.className = "pill org";
+    span.textContent = o;
+    root.appendChild(span);
+  }
+}
+
+function renderTopMovers() {
+  const root = document.getElementById("topMovers");
+  if (!root) return;
+  root.innerHTML = "";
+  const top = [...state.data.countries]
+    .sort((a, b) => (b.yoy ?? 0) - (a.yoy ?? 0))
+    .slice(0, 6);
+  for (const c of top) {
+    const li = document.createElement("li");
+    li.dataset.iso = c.iso_a3;
+    const cls = (c.yoy ?? 0) >= 0 ? "" : "down";
+    const sign = c.yoy > 0 ? "+" : "";
+    li.innerHTML = `
+      <span class="mv-name">${c.name}</span>
+      <span class="mv-rank">#${c.rank}</span>
+      <span class="mv-yoy ${cls}">${sign}${c.yoy} pts</span>
+    `;
+    li.addEventListener("click", () => selectCountry(c.iso_a3, { fly: true, openModal: true }));
+    root.appendChild(li);
+  }
+}
+
+function renderSummaryStats() {
+  const cs = state.data.countries;
+  const avg = cs.reduce((s, c) => s + c.score, 0) / cs.length;
+  const avgYoy = cs.reduce((s, c) => s + (c.yoy ?? 0), 0) / cs.length;
+  const top = cs.reduce((a, b) => (a.score > b.score ? a : b));
+  const set = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  set("globalAvg", avg.toFixed(1));
+  set("globalCountries", cs.length);
+  set("globalTop", top.iso_a3);
+  set("globalYoy", "+" + avgYoy.toFixed(1));
 }
 
 function renderModalBars(c) {
